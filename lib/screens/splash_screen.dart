@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'dart:async';
 import '../theme/app_theme.dart';
+import '../providers/auth_provider.dart';
 import 'auth/login_screen.dart';
+import 'user/main_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -42,11 +45,26 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
+    // Check authentication status after animation
     Timer(const Duration(seconds: 3), () {
+      _checkAuthenticationStatus();
+    });
+  }
+
+  void _checkAuthenticationStatus() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    if (authProvider.isAuthenticated) {
+      // User is already logged in, go to main screen
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const MainScreen()),
+      );
+    } else {
+      // User is not logged in, go to login screen
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const LoginScreen()),
       );
-    });
+    }
   }
 
   @override

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/custom_button.dart';
 import '../../models/loan.dart';
+import '../../providers/loan_provider.dart';
+import '../../providers/auth_provider.dart';
 
 class LoansScreen extends StatefulWidget {
   const LoansScreen({super.key});
@@ -14,82 +17,25 @@ class _LoansScreenState extends State<LoansScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  final List<Loan> activeLoans = [
-    Loan(
-      id: '1',
-      userId: 'test',
-      productId: '1',
-      productName: 'Personal Loan',
-      principalAmount: 10000.00,
-      outstandingBalance: 7500.00,
-      monthlyPayment: 450.00,
-      interestRate: 8.5,
-      nextPaymentDate: DateTime.now().add(const Duration(days: 15)),
-      status: LoanStatus.active,
-      createdAt: DateTime.now(),
-    ),
-    Loan(
-      id: '2',
-      userId: 'test',
-      productId: '3',
-      productName: 'Car Loan',
-      principalAmount: 25000.00,
-      outstandingBalance: 18750.00,
-      monthlyPayment: 650.00,
-      interestRate: 6.5,
-      nextPaymentDate: DateTime.now().add(const Duration(days: 20)),
-      status: LoanStatus.active,
-      createdAt: DateTime.now(),
-    ),
-  ];
-
-  final List<LoanProduct> loanProducts = [
-    LoanProduct(
-      id: '1',
-      name: 'Personal Loan',
-      description: 'Flexible personal loan for various needs',
-      minAmount: 5000.0,
-      maxAmount: 50000.0,
-      interestRate: 8.5,
-      maxTerm: 60,
-      requirements: ['Valid ID', 'Proof of Income', 'Good Credit Score'],
-    ),
-    LoanProduct(
-      id: '2',
-      name: 'Home Loan',
-      description: 'Mortgage loan for home purchase',
-      minAmount: 100000.0,
-      maxAmount: 2000000.0,
-      interestRate: 6.5,
-      maxTerm: 360,
-      requirements: ['Valid ID', 'Proof of Income', 'Property Documents'],
-    ),
-    LoanProduct(
-      id: '3',
-      name: 'Car Loan',
-      description: 'Auto loan for vehicle purchase',
-      minAmount: 10000.0,
-      maxAmount: 500000.0,
-      interestRate: 7.2,
-      maxTerm: 84,
-      requirements: ['Valid ID', 'Proof of Income', 'Vehicle Documents'],
-    ),
-    LoanProduct(
-      id: '4',
-      name: 'Business Loan',
-      description: 'Loan for business expansion',
-      minAmount: 50000.0,
-      maxAmount: 1000000.0,
-      interestRate: 9.0,
-      maxTerm: 120,
-      requirements: ['Business Registration', 'Financial Statements', 'Business Plan'],
-    ),
-  ];
-
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    
+    // Load data when screen initializes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadLoanData();
+    });
+  }
+
+  void _loadLoanData() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final loanProvider = Provider.of<LoanProvider>(context, listen: false);
+    
+    if (authProvider.user != null) {
+      loanProvider.loadUserLoans(authProvider.user!.id);
+      loanProvider.loadLoanProducts();
+    }
   }
 
   @override
@@ -100,32 +46,40 @@ class _LoansScreenState extends State<LoansScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Loans'),
-        backgroundColor: AppColors.deepBlueViolet,
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: AppColors.white,
-          labelColor: AppColors.white,
-          unselectedLabelColor: AppColors.white.withOpacity(0.7),
-          tabs: const [
-            Tab(text: 'My Loans'),
-            Tab(text: 'Apply Loan'),
-          ],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildMyLoansTab(),
-          _buildApplyLoanTab(),
-        ],
-      ),
+    return Consumer<LoanProvider>(
+      builder: (context, loanProvider, child) {
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Loans'),
+            backgroundColor: AppColors.deepBlueViolet,
+            bottom: TabBar(
+              controller: _tabController,
+              indicatorColor: AppColors.white,
+              labelColor: AppColors.white,
+              unselectedLabelColor: AppColors.white.withOpacity(0.7),
+              tabs: const [
+                Tab(text: 'My Loans'),
+                Tab(text: 'Apply Loan'),
+              ],
+            ),
+          ),
+          body: loanProvider.isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildMyLoansTab(loanProvider),
+                    _buildApplyLoanTab(loanProvider),
+                  ],
+                ),
+        );
+      },
     );
   }
 
-  Widget _buildMyLoansTab() {
+  Widget _buildMyLoansTab(LoanProvider loanProvider) {
+    final activeLoans = loanProvider.activeLoans;
+    
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -157,7 +111,7 @@ class _LoansScreenState extends State<LoansScreen>
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '\$${_calculateTotalOutstanding().toStringAsFixed(2)}',
+                  '\$${loanProvider.totalOutstanding.toStringAsFixed(2)}',
                   style: const TextStyle(
                     color: AppColors.white,
                     fontSize: 32,
@@ -170,7 +124,7 @@ class _LoansScreenState extends State<LoansScreen>
                     Expanded(
                       child: _buildSummaryItem(
                         'Monthly Payment',
-                        _calculateTotalMonthlyPayment(),
+                        loanProvider.totalMonthlyPayment,
                       ),
                     ),
                     Expanded(
@@ -197,7 +151,22 @@ class _LoansScreenState extends State<LoansScreen>
             ),
           ),
           const SizedBox(height: 16),
-          ...activeLoans.map((loan) => _buildLoanCard(loan)),
+          activeLoans.isEmpty
+              ? const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Text(
+                      'No active loans found',
+                      style: TextStyle(
+                        color: AppColors.darkGray,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                )
+              : Column(
+                  children: activeLoans.map((loan) => _buildLoanCard(loan)).toList(),
+                ),
 
           const SizedBox(height: 20),
 
@@ -234,7 +203,9 @@ class _LoansScreenState extends State<LoansScreen>
     );
   }
 
-  Widget _buildApplyLoanTab() {
+  Widget _buildApplyLoanTab(LoanProvider loanProvider) {
+    final loanProducts = loanProvider.loanProducts;
+    
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -647,15 +618,10 @@ class _LoansScreenState extends State<LoansScreen>
     }
   }
 
-  double _calculateTotalOutstanding() {
-    return activeLoans.fold(0, (sum, loan) => sum + loan.outstandingBalance);
-  }
-
-  double _calculateTotalMonthlyPayment() {
-    return activeLoans.fold(0, (sum, loan) => sum + loan.monthlyPayment);
-  }
-
   void _showPaymentDialog() {
+    final loanProvider = Provider.of<LoanProvider>(context, listen: false);
+    final activeLoans = loanProvider.activeLoans;
+    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -691,24 +657,34 @@ class _LoansScreenState extends State<LoansScreen>
               ),
             ),
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: activeLoans.length,
-                itemBuilder: (context, index) {
-                  final loan = activeLoans[index];
-                  return ListTile(
-                    title: Text(loan.productName),
-                    subtitle: Text('Next payment: \$${loan.monthlyPayment.toStringAsFixed(2)}'),
-                    trailing: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _processPayment(loan);
+              child: activeLoans.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No active loans to pay',
+                        style: TextStyle(
+                          color: AppColors.darkGray,
+                          fontSize: 16,
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      itemCount: activeLoans.length,
+                      itemBuilder: (context, index) {
+                        final loan = activeLoans[index];
+                        return ListTile(
+                          title: Text(loan.productName),
+                          subtitle: Text('Next payment: \$${loan.monthlyPayment.toStringAsFixed(2)}'),
+                          trailing: ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              _processPayment(loan);
+                            },
+                            child: const Text('Pay'),
+                          ),
+                        );
                       },
-                      child: const Text('Pay'),
                     ),
-                  );
-                },
-              ),
             ),
           ],
         ),

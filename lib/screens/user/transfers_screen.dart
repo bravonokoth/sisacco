@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
+import '../../providers/account_provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../models/account.dart';
 
 class TransfersScreen extends StatefulWidget {
   const TransfersScreen({super.key});
@@ -18,13 +22,27 @@ class _TransfersScreenState extends State<TransfersScreen>
   final _recipientController = TextEditingController();
   final _noteController = TextEditingController();
 
-  String _selectedFromAccount = 'Savings Account - ****1234';
+  String? _selectedFromAccountId;
   String _selectedTransferType = 'Internal Transfer';
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    
+    // Load accounts when screen initializes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadAccounts();
+    });
+  }
+
+  void _loadAccounts() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final accountProvider = Provider.of<AccountProvider>(context, listen: false);
+    
+    if (authProvider.user != null) {
+      accountProvider.loadUserAccounts(authProvider.user!.id);
+    }
   }
 
   @override
@@ -168,40 +186,71 @@ class _TransfersScreenState extends State<TransfersScreen>
                     ),
                   ),
                   const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    value: _selectedFromAccount,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                    ),
-                    items: [
-                      'Savings Account - ****1234',
-                      'Checking Account - ****5678',
-                      'Fixed Deposit - ****9012',
-                    ].map((account) {
-                      return DropdownMenuItem(
-                        value: account,
-                        child: Text(account),
+                  Consumer<AccountProvider>(
+                    builder: (context, accountProvider, child) {
+                      final accounts = accountProvider.accounts;
+                      
+                      if (accountProvider.isLoading) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      
+                      if (accounts.isEmpty) {
+                        return const Text(
+                          'No accounts available',
+                          style: TextStyle(
+                            color: AppColors.darkGray,
+                            fontSize: 16,
+                          ),
+                        );
+                      }
+                      
+                      // Set default selected account if none selected
+                      if (_selectedFromAccountId == null && accounts.isNotEmpty) {
+                        _selectedFromAccountId = accounts.first.id;
+                      }
+                      
+                      final selectedAccount = accounts.firstWhere(
+                        (account) => account.id == _selectedFromAccountId,
+                        orElse: () => accounts.first,
                       );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedFromAccount = value!;
-                      });
+                      
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          DropdownButtonFormField<String>(
+                            value: _selectedFromAccountId,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                            ),
+                            items: accounts.map((account) {
+                              return DropdownMenuItem(
+                                value: account.id,
+                                child: Text('${account.name} - ****${account.accountNumber.substring(account.accountNumber.length - 4)}'),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedFromAccountId = value!;
+                              });
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Available Balance: \$${selectedAccount.balance.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              color: AppColors.success,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      );
                     },
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Available Balance: \$15,750.50',
-                    style: TextStyle(
-                      color: AppColors.success,
-                      fontWeight: FontWeight.w600,
-                    ),
                   ),
                 ],
               ),
@@ -618,6 +667,9 @@ class _TransfersScreenState extends State<TransfersScreen>
 
   void _processTransfer() {
     if (_formKey.currentState!.validate()) {
+      final accountProvider = Provider.of<AccountProvider>(context, listen: false);
+      final selectedAccount = accountProvider.getAccountById(_selectedFromAccountId ?? '');
+      
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -626,7 +678,7 @@ class _TransfersScreenState extends State<TransfersScreen>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('From: $_selectedFromAccount'),
+              Text('From: ${selectedAccount?.name ?? 'Unknown Account'}'),
               Text('To: ${_recipientController.text}'),
               Text('Amount: \$${_amountController.text}'),
               if (_noteController.text.isNotEmpty)

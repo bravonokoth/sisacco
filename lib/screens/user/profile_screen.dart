@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
+import '../../providers/auth_provider.dart';
 import '../auth/login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -55,20 +57,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'John Doe',
-                    style: TextStyle(
-                      color: AppColors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Text(
-                    'john.doe@email.com',
-                    style: TextStyle(
-                      color: AppColors.white,
-                      fontSize: 16,
-                    ),
+                  Consumer<AuthProvider>(
+                    builder: (context, authProvider, child) {
+                      final userProfile = authProvider.userProfile;
+                      final fullName = userProfile != null 
+                          ? '${userProfile.firstName} ${userProfile.lastName}'
+                          : 'User';
+                      final email = authProvider.user?.email ?? 'No email';
+                      
+                      return Column(
+                        children: [
+                          Text(
+                            fullName,
+                            style: const TextStyle(
+                              color: AppColors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            email,
+                            style: const TextStyle(
+                              color: AppColors.white,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 20),
                   Container(
@@ -418,8 +434,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
+              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+              await authProvider.signOut();
               Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (context) => const LoginScreen()),
                 (route) => false,

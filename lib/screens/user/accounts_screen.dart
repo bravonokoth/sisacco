@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/account_card.dart';
 import '../../models/account.dart';
+import '../../providers/account_provider.dart';
+import '../../providers/auth_provider.dart';
 
 class AccountsScreen extends StatefulWidget {
   const AccountsScreen({super.key});
@@ -11,48 +14,23 @@ class AccountsScreen extends StatefulWidget {
 }
 
 class _AccountsScreenState extends State<AccountsScreen> {
-  final List<Account> accounts = [
-    Account(
-      id: '1',
-      userId: 'test',
-      name: 'Primary Savings',
-      accountNumber: '1234567890',
-      balance: 15750.50,
-      type: AccountType.savings,
-      interestRate: 2.5,
-      createdAt: DateTime.now(),
-    ),
-    Account(
-      id: '2',
-      userId: 'test',
-      name: 'Checking Account',
-      accountNumber: '0987654321',
-      balance: 3250.75,
-      type: AccountType.checking,
-      interestRate: 0.5,
-      createdAt: DateTime.now(),
-    ),
-    Account(
-      id: '3',
-      userId: 'test',
-      name: 'Fixed Deposit',
-      accountNumber: '1122334455',
-      balance: 50000.00,
-      type: AccountType.fixedDeposit,
-      interestRate: 5.0,
-      createdAt: DateTime.now(),
-    ),
-    Account(
-      id: '4',
-      userId: 'test',
-      name: 'Personal Loan',
-      accountNumber: '5544332211',
-      balance: -12500.00,
-      type: AccountType.loan,
-      interestRate: 8.5,
-      createdAt: DateTime.now(),
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    // Load accounts when screen initializes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadAccounts();
+    });
+  }
+
+  void _loadAccounts() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final accountProvider = Provider.of<AccountProvider>(context, listen: false);
+    
+    if (authProvider.user != null) {
+      accountProvider.loadUserAccounts(authProvider.user!.id);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,110 +39,183 @@ class _AccountsScreenState extends State<AccountsScreen> {
         title: const Text('My Accounts'),
         backgroundColor: AppColors.deepBlueViolet,
         elevation: 0,
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [AppColors.deepBlueViolet, AppColors.lightGray],
-            begin: Alignment.topCenter,
-            end: Alignment.center,
-            stops: [0.0, 0.3],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadAccounts,
           ),
-        ),
-        child: Column(
-          children: [
-            // Summary Card
-            Container(
-              margin: const EdgeInsets.all(20),
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
+        ],
+      ),
+      body: Consumer<AccountProvider>(
+        builder: (context, accountProvider, child) {
+          if (accountProvider.isLoading) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+
+          if (accountProvider.errorMessage != null) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Error: ${accountProvider.errorMessage}',
+                    style: const TextStyle(color: AppColors.error),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _loadAccounts,
+                    child: const Text('Retry'),
                   ),
                 ],
               ),
+            );
+          }
+
+          final accounts = accountProvider.accounts;
+
+          if (accounts.isEmpty) {
+            return Center(
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  const Icon(
+                    Icons.account_balance,
+                    size: 64,
+                    color: AppColors.darkGray,
+                  ),
+                  const SizedBox(height: 16),
                   const Text(
-                    'Total Balance',
+                    'No accounts found',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 18,
                       color: AppColors.darkGray,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    '\$${_calculateTotalBalance().toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.deepBlueViolet,
+                  const Text(
+                    'Create your first account to get started',
+                    style: TextStyle(
+                      color: AppColors.darkGray,
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildSummaryItem(
-                          'Assets',
-                          _calculateAssets(),
-                          AppColors.success,
-                        ),
-                      ),
-                      Container(
-                        width: 1,
-                        height: 40,
-                        color: AppColors.lightGray,
-                      ),
-                      Expanded(
-                        child: _buildSummaryItem(
-                          'Liabilities',
-                          _calculateLiabilities(),
-                          AppColors.error,
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),
-            ),
+            );
+          }
 
-            // Accounts List
-            Expanded(
-              child: Container(
-                decoration: const BoxDecoration(
-                  color: AppColors.lightGray,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(30),
-                    topRight: Radius.circular(30),
-                  ),
-                ),
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(20),
-                  itemCount: accounts.length,
-                  itemBuilder: (context, index) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: AccountCard(
-                        account: accounts[index],
-                        onTap: () => _showAccountDetails(accounts[index]),
-                      ),
-                    );
-                  },
-                ),
+          return Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppColors.deepBlueViolet, AppColors.lightGray],
+                begin: Alignment.topCenter,
+                end: Alignment.center,
+                stops: [0.0, 0.3],
               ),
             ),
-          ],
-        ),
+            child: Column(
+              children: [
+                // Summary Card
+                Container(
+                  margin: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Total Balance',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: AppColors.darkGray,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '\$${accountProvider.totalBalance.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.deepBlueViolet,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildSummaryItem(
+                              'Assets',
+                              accountProvider.totalAssets,
+                              AppColors.success,
+                            ),
+                          ),
+                          Container(
+                            width: 1,
+                            height: 40,
+                            color: AppColors.lightGray,
+                          ),
+                          Expanded(
+                            child: _buildSummaryItem(
+                              'Liabilities',
+                              accountProvider.totalLiabilities,
+                              AppColors.error,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Accounts List
+                Expanded(
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      color: AppColors.lightGray,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(30),
+                        topRight: Radius.circular(30),
+                      ),
+                    ),
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(20),
+                      itemCount: accounts.length,
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: AccountCard(
+                            account: accounts[index],
+                            onTap: () => _showAccountDetails(accounts[index]),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // Open new account
+          // TODO: Implement new account creation
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('New account feature coming soon!'),
+            ),
+          );
         },
         backgroundColor: AppColors.purple,
         child: const Icon(Icons.add),
@@ -193,22 +244,6 @@ class _AccountsScreenState extends State<AccountsScreen> {
         ),
       ],
     );
-  }
-
-  double _calculateTotalBalance() {
-    return accounts.fold(0, (sum, account) => sum + account.balance);
-  }
-
-  double _calculateAssets() {
-    return accounts
-        .where((account) => account.balance > 0)
-        .fold(0, (sum, account) => sum + account.balance);
-  }
-
-  double _calculateLiabilities() {
-    return accounts
-        .where((account) => account.balance < 0)
-        .fold(0, (sum, account) => sum + account.balance.abs());
   }
 
   void _showAccountDetails(Account account) {
