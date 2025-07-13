@@ -1,0 +1,88 @@
+name: financial_app
+description: A comprehensive Flutter financial institution app for users and admins
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_dotenv: ^5.1.0
+  
+  # UI & Navigation
+  cupertino_icons: ^1.0.2
+  
+  # Supabase
+  supabase_flutter: ^2.3.4
+  
+  # State Management
+  provider: ^6.1.1
+  
+  # Local Storage
+  shared_preferences: ^2.2.2
+  
+  # Security & Authentication
+  local_auth: ^2.1.6
+  crypto: ^3.0.3
+  
+  # Charts & Analytics
+  fl_chart: ^0.64.0
+  syncfusion_flutter_charts: ^23.1.36
+  
+  # Image & Media
+  image_picker: ^1.0.4
+  cached_network_image: ^3.3.0
+  
+  # QR Code
+  mobile_scanner: ^3.5.6
+  qr_flutter: ^4.1.0
+  
+  # Utilities
+  intl: ^0.18.1
+  uuid: ^4.1.0
+  path_provider: ^2.1.1
+  
+  # Animations
+  lottie: ^2.7.0
+  
+  # PDF Generation
+  pdf: ^3.10.7
+  printing: ^5.11.1
+  
+  # Push Notifications
+  firebase_core: ^2.24.2
+  firebase_messaging: ^14.7.9
+  
+  # Maps (for branch locator)
+  google_maps_flutter: ^2.5.0
+  #geolocator: ^10.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+
+  #geolocator_android: ^4.6.1
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/animations/
+    - .env
+
+  # fonts:
+  #   - family: Inter
+  #     fonts:
+  #       - asset: assets/fonts/Inter-Regular.ttf
+  #       - asset: assets/fonts/Inter-Medium.ttf
+  #         weight: 500
+  #       - asset: assets/fonts/Inter-SemiBold.ttf
+  #         weight: 600
+  #       - asset: assets/fonts/Inter-Bold.ttf
+  #         weight: 700
