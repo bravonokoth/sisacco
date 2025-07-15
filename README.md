@@ -98,7 +98,51 @@ For support, email bravonorwa@gmail.com or create an issue in this repository.
 
 ## Screenshots
 
-[Add screenshots of your app here]
+
+
+Screenshot 1
+![App Screenshot 1](assets/images/Screenshot from 2025-07-15 06-39-49.png "Sisacco App View 1")
+
+Screenshot 2
+![App Screenshot 2](assets/images/Screenshot from 2025-07-15 06-38-39.png "Sisacco App View 2")
+
+Screenshot 3
+![App Screenshot 3](assets/images/Screenshot from 2025-07-15 06-32-11.png "Sisacco App View 3")
+
+Screenshot 4
+![App Screenshot 4](assets/images/Screenshot from 2025-07-15 06-32-03.png "Sisacco App View 4")
+
+Screenshot 5
+![App Screenshot 5](assets/images/Screenshot from 2025-07-15 06-31-55.png "Sisacco App View 5")
+
+Screenshot 6
+![App Screenshot 6](assets/images/Screenshot from 2025-07-15 06-31-48.png "Sisacco App View 6")
+
+Screenshot 7
+![App Screenshot 7](assets/images/Screenshot from 2025-07-15 06-31-25.png "Sisacco App View 7")
+
+Screenshot 8
+![App Screenshot 8](assets/images/Screenshot from 2025-07-15 06-31-18.png "Sisacco App View 8")
+
+Screenshot 9
+![App Screenshot 9](assets/images/Screenshot from 2025-07-15 06-31-05.png "Sisacco App View 9")
+
+Screenshot 10
+![App Screenshot 10](assets/images/Screenshot from 2025-07-15 06-30-57.png "Sisacco App View 10")
+
+Screenshot 11
+![App Screenshot 11](assets/images/Screenshot from 2025-07-15 06-30-51.png "Sisacco App View 11")
+
+Screenshot 12
+![App Screenshot 12](assets/images/Screenshot from 2025-07-15 06-30-43.png "Sisacco App View 12")
+
+Screenshot 13
+![App Screenshot 13](assets/images/Screenshot from 2025-07-15 06-30-27.png "Sisacco App View 13")
+
+Screenshot 14
+![App Screenshot 14](assets/images/Screenshot from 2025-07-15 06-29-00.png "Sisacco App View 14")
+
+Note: This is a development version. Some features may be in progress or subject to change.
 
 ---
 
